@@ -1,5 +1,7 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const store = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,18 +11,6 @@ const TOKEN = 'mock-jwt-token';
 
 app.use(cors());
 app.use(express.json());
-
-// ---------- In-memory data ----------
-let employees = [
-  { id: '1', name: 'John Doe', position: 'Software Engineer', status: 'Active', salary: 45000 },
-  { id: '2', name: 'Jane Smith', position: 'HR Manager', status: 'Active', salary: 52000 },
-  { id: '3', name: 'Somchai Jaidee', position: 'Intern', status: 'On Leave', salary: 15000 },
-  { id: '4', name: 'Alice Wong', position: 'Junior Developer', status: 'Active', salary: 22000 },
-  { id: '5', name: 'Bob Brown', position: 'CTO', status: 'Active', salary: 90000 },
-  { id: '6', name: 'Nida Srisuk', position: 'Engineering Manager', status: 'Active', salary: 80000 },
-  { id: '7', name: 'Mark Lee', position: 'QA Engineer', status: 'On Leave', salary: 40000 },
-];
-let nextId = employees.length + 1;
 
 // ---------- Auth ----------
 app.post('/api/login', (req, res) => {
@@ -101,9 +91,9 @@ function kMeans1D(values, k = 3, maxIter = 100) {
 }
 
 // Must be declared before /:id routes
-app.get('/api/employees/salary-clusters', (req, res) => {
+app.get('/api/employees/salary-clusters', async (req, res) => {
   try {
-    const salaries = employees
+    const salaries = (await store.list())
       .map((e) => Number(e.salary))
       .filter((s) => Number.isFinite(s));
     const clusters = kMeans1D(salaries, 3);
@@ -115,11 +105,11 @@ app.get('/api/employees/salary-clusters', (req, res) => {
 });
 
 // ---------- CRUD ----------
-app.get('/api/employees', (req, res) => {
-  res.status(200).json(employees);
+app.get('/api/employees', async (req, res) => {
+  res.status(200).json(await store.list());
 });
 
-app.post('/api/employees', (req, res) => {
+app.post('/api/employees', async (req, res) => {
   const { name, position, salary } = req.body || {};
   const isEmpty = (v) => v === undefined || v === null || String(v).trim() === '';
 
@@ -137,32 +127,27 @@ app.post('/api/employees', (req, res) => {
     return res.status(400).json({ success: false, message: 'salary must be a non-negative number' });
   }
 
-  const employee = {
-    id: String(nextId++),
+  const employee = await store.create({
     name: String(name).trim(),
     position: String(position).trim(),
-    status: 'Active',
     salary: salaryNum,
-  };
-  employees.push(employee);
+  });
   return res.status(201).json(employee);
 });
 
-app.put('/api/employees/:id/status', (req, res) => {
-  const employee = employees.find((e) => e.id === req.params.id);
+app.put('/api/employees/:id/status', async (req, res) => {
+  const employee = await store.toggleStatus(req.params.id);
   if (!employee) {
     return res.status(404).json({ success: false, message: 'Employee not found' });
   }
-  employee.status = employee.status === 'Active' ? 'On Leave' : 'Active';
   return res.status(200).json(employee);
 });
 
-app.delete('/api/employees/:id', (req, res) => {
-  const index = employees.findIndex((e) => e.id === req.params.id);
-  if (index === -1) {
+app.delete('/api/employees/:id', async (req, res) => {
+  const removed = await store.remove(req.params.id);
+  if (!removed) {
     return res.status(404).json({ success: false, message: 'Employee not found' });
   }
-  const [removed] = employees.splice(index, 1);
   return res.status(200).json({ success: true, deleted: removed });
 });
 
@@ -181,9 +166,17 @@ app.use((err, req, res, next) => {
 });
 
 if (require.main === module) {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`HR backend running on http://localhost:${PORT}`);
-  });
+  store
+    .init()
+    .then(() => {
+      app.listen(PORT, '0.0.0.0', () => {
+        console.log(`HR backend running on http://localhost:${PORT} (storage: ${store.kind})`);
+      });
+    })
+    .catch((err) => {
+      console.error('Failed to connect to the database:', err.message);
+      process.exit(1);
+    });
 }
 
 module.exports = { app, kMeans1D };

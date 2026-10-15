@@ -4,6 +4,8 @@ import Constants from 'expo-constants';
 // Backend runs on port 3000 of the same machine that runs Metro.
 // On a phone (Expo Go) we reuse the Metro host IP; on web/emulator fall back to localhost.
 function resolveBaseUrl() {
+  // Deployed backend, e.g. EXPO_PUBLIC_API_URL=http://119.59.102.161:3010/api (set in frontend/.env)
+  if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
   const hostUri = Constants.expoConfig?.hostUri; // e.g. "192.168.1.10:8081"
   if (Platform.OS !== 'web' && hostUri) {
     return `http://${hostUri.split(':')[0]}:3000/api`;
