@@ -1,16 +1,9 @@
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api, setToken } from '../api';
 import { showAlert } from '../alert';
+import { Button, Field } from '../components/ui';
+import { colors, fonts, radius } from '../theme';
 
 export default function LoginScreen({ navigation }) {
   const [username, setUsername] = useState('');
@@ -19,7 +12,7 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = async () => {
     if (!username.trim() || !password) {
-      showAlert('Login Failed', 'Please enter both username and password.');
+      showAlert('Login Failed', 'Enter both your username and password.');
       return;
     }
     setLoading(true);
@@ -37,61 +30,52 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={styles.screen}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.card}>
-        <Text style={styles.title}>HR Manager</Text>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <View style={styles.brand}>
+          <Text style={styles.brandName}>HR Manager</Text>
+          <Text style={styles.brandLine}>People, status and pay in one place.</Text>
+        </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Username"
-          autoCapitalize="none"
-          autoCorrect={false}
-          value={username}
-          onChangeText={setUsername}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          onSubmitEditing={handleLogin}
-        />
-
-        <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Login</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+        <View style={styles.card}>
+          <Text style={styles.title}>Sign in</Text>
+          <Field
+            label="Username"
+            placeholder="Username"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={username}
+            onChangeText={setUsername}
+          />
+          <Field
+            label="Password"
+            placeholder="Password"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            onSubmitEditing={handleLogin}
+          />
+          <Button title="Login" onPress={handleLogin} loading={loading} style={{ marginTop: 6 }} />
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#f1f5f9' },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 24, elevation: 3 },
-  title: { fontSize: 26, fontWeight: '700', color: '#0f172a', textAlign: 'center' },
-  subtitle: { fontSize: 14, color: '#64748b', textAlign: 'center', marginBottom: 24 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    fontSize: 16,
+  screen: { flex: 1, backgroundColor: colors.forestDeep },
+  scroll: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  brand: { width: '100%', maxWidth: 400, marginBottom: 28 },
+  brandName: { fontFamily: fonts.display, fontSize: 44, lineHeight: 48, color: '#fff', letterSpacing: -1 },
+  brandLine: { fontFamily: fonts.body, fontSize: 16, color: '#B9D6CB', marginTop: 8 },
+  card: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: colors.paper,
+    borderRadius: radius.lg,
+    padding: 24,
   },
-  button: {
-    backgroundColor: '#2563eb',
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  title: { fontFamily: fonts.displaySemi, fontSize: 22, color: colors.ink, marginBottom: 18 },
 });
