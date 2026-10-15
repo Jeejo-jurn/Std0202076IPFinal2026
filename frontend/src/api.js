@@ -20,14 +20,24 @@ export const setToken = (token) => {
 };
 
 async function request(path, options = {}) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-      ...options.headers,
-    },
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        ...options.headers,
+      },
+    });
+  } catch {
+    throw new Error(`Cannot reach the server at ${BASE_URL}. Make sure the backend is running.`);
+  } finally {
+    clearTimeout(timer);
+  }
   let data = null;
   try {
     data = await res.json();

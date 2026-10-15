@@ -23,6 +23,16 @@ Login: `admin` / `password123`
 
 All `/api/employees*` routes require the header `Authorization: Bearer mock-jwt-token` (otherwise 401).
 
+Run the automated API tests (login, 401/400/404 handling, CRUD flow, K-Means edge cases):
+
+```bash
+cd backend
+npm test
+```
+
+### K-Means (1D, k=3)
+Salaries are sorted and the 3 starting centroids are spread evenly across the unique values (deterministic, same input -> same output). The algorithm alternates assignment (nearest centroid) and update (mean of members) until nothing changes. Tiers are sorted from lowest to highest pay. Each tier returns `group`, `centroid`, `count`, plus `min`/`max` salary. If there are fewer than 3 distinct salaries it returns fewer tiers, and with no data it returns an empty list. It never crashes.
+
 ## 2. Run the frontend (Expo / Metro)
 
 ```bash

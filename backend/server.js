@@ -80,16 +80,23 @@ function kMeans1D(values, k = 3, maxIter = 100) {
   }
 
   return centroids
-    .map((centroid, c) => ({
-      centroid,
-      count: assignments.filter((a) => a === c).length,
-    }))
+    .map((centroid, c) => {
+      const members = sorted.filter((_, i) => assignments[i] === c);
+      return {
+        centroid,
+        count: members.length,
+        min: members[0],
+        max: members[members.length - 1],
+      };
+    })
     .filter((cl) => cl.count > 0)
     .sort((a, b) => a.centroid - b.centroid)
     .map((cl, i) => ({
       group: `Tier ${i + 1}`,
       centroid: Math.round(cl.centroid * 100) / 100,
       count: cl.count,
+      min: cl.min,
+      max: cl.max,
     }));
 }
 
@@ -119,7 +126,10 @@ app.post('/api/employees', (req, res) => {
   if (isEmpty(name) || isEmpty(position) || isEmpty(salary)) {
     return res.status(400).json({ success: false, message: 'name, position and salary are required' });
   }
-  const salaryNum = Number(salary);
+  if (typeof name !== 'string' || typeof position !== 'string') {
+    return res.status(400).json({ success: false, message: 'name and position must be text' });
+  }
+  const salaryNum = typeof salary === 'number' || typeof salary === 'string' ? Number(salary) : NaN;
   if (!Number.isFinite(salaryNum) || salaryNum < 0) {
     return res.status(400).json({ success: false, message: 'salary must be a non-negative number' });
   }
@@ -167,6 +177,10 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Internal server error' });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`HR backend running on http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`HR backend running on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = { app, kMeans1D };

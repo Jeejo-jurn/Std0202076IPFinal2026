@@ -27,6 +27,7 @@ export default function DashboardScreen({ navigation }) {
 
   const [clusters, setClusters] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [busyId, setBusyId] = useState(null); // employee currently being toggled/deleted
 
   const fetchEmployees = useCallback(async () => {
     try {
@@ -80,22 +81,28 @@ export default function DashboardScreen({ navigation }) {
   };
 
   const handleToggle = async (id) => {
+    setBusyId(id);
     try {
       await api.toggleStatus(id);
       await fetchEmployees();
     } catch (err) {
       showAlert('Error', err.message);
+    } finally {
+      setBusyId(null);
     }
   };
 
   const handleDelete = (employee) => {
     confirmAlert('Delete Employee', `Are you sure you want to delete ${employee.name}?`, async () => {
+      setBusyId(employee.id);
       try {
         await api.deleteEmployee(employee.id);
         setClusters(null);
         await fetchEmployees();
       } catch (err) {
         showAlert('Error', err.message);
+      } finally {
+        setBusyId(null);
       }
     });
   };
@@ -104,7 +111,11 @@ export default function DashboardScreen({ navigation }) {
     setAnalyzing(true);
     setClusters(null);
     try {
-      const data = await api.getSalaryClusters();
+      // Keep the loader visible briefly so it doesn't just flash on a fast local network
+      const [data] = await Promise.all([
+        api.getSalaryClusters(),
+        new Promise((resolve) => setTimeout(resolve, 600)),
+      ]);
       setClusters(data.clusters || []);
     } catch (err) {
       showAlert('Error', err.message);
@@ -115,6 +126,7 @@ export default function DashboardScreen({ navigation }) {
 
   const renderEmployee = ({ item }) => {
     const active = item.status === 'Active';
+    const busy = busyId === item.id;
     return (
       <View style={styles.employeeCard}>
         <View style={{ flex: 1 }}>
@@ -126,12 +138,18 @@ export default function DashboardScreen({ navigation }) {
           </View>
         </View>
         <View style={styles.actions}>
-          <TouchableOpacity style={[styles.smallBtn, styles.toggleBtn]} onPress={() => handleToggle(item.id)}>
-            <Text style={styles.smallBtnText}>Toggle Status</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.smallBtn, styles.deleteBtn]} onPress={() => handleDelete(item)}>
-            <Text style={styles.smallBtnText}>Delete</Text>
-          </TouchableOpacity>
+          {busy ? (
+            <ActivityIndicator color="#2563eb" style={{ width: 100 }} />
+          ) : (
+            <>
+              <TouchableOpacity style={[styles.smallBtn, styles.toggleBtn]} onPress={() => handleToggle(item.id)}>
+                <Text style={styles.smallBtnText}>Toggle Status</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.smallBtn, styles.deleteBtn]} onPress={() => handleDelete(item)}>
+                <Text style={styles.smallBtnText}>Delete</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
     );
@@ -194,6 +212,11 @@ export default function DashboardScreen({ navigation }) {
                 <Text style={styles.clusterValue}>{c.count}</Text>
                 <Text style={styles.clusterLabel}>Avg. Salary</Text>
                 <Text style={styles.clusterValue}>{formatMoney(c.centroid)}</Text>
+                {c.min !== undefined && (
+                  <Text style={styles.clusterRange}>
+                    {formatMoney(c.min)} – {formatMoney(c.max)}
+                  </Text>
+                )}
               </View>
             ))}
           </View>
@@ -256,6 +279,7 @@ const styles = StyleSheet.create({
   clusterTier: { fontSize: 16, fontWeight: '700', color: '#5b21b6', marginBottom: 6 },
   clusterLabel: { fontSize: 12, color: '#64748b' },
   clusterValue: { fontSize: 16, fontWeight: '700', color: '#0f172a', marginBottom: 4 },
+  clusterRange: { fontSize: 11, color: '#7c3aed', textAlign: 'center' },
   employeeCard: {
     flexDirection: 'row',
     backgroundColor: '#fff',
