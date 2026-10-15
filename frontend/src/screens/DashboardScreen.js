@@ -59,7 +59,7 @@ export default function DashboardScreen({ navigation }) {
       showAlert('Validation Error', 'Please fill in name, position and salary.');
       return;
     }
-    const salaryNum = Number(salary);
+    const salaryNum = Number(salary.replace(/[,\s]/g, '')); // accept "20,000"
     if (!Number.isFinite(salaryNum) || salaryNum < 0) {
       showAlert('Validation Error', 'Salary must be a valid non-negative number.');
       return;

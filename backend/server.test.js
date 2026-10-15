@@ -58,6 +58,14 @@ test('POST employee: empty / invalid fields -> 400', async () => {
   }
 });
 
+test('POST employee accepts salary with thousands separator', async () => {
+  const res = await post('/employees', { name: 'Comma', position: 'Intern', salary: '20,000' });
+  assert.strictEqual(res.status, 201);
+  const created = await res.json();
+  assert.strictEqual(created.salary, 20000);
+  await fetch(`${base}/employees/${created.id}`, { method: 'DELETE', headers: auth });
+});
+
 test('POST, toggle status, DELETE flow', async () => {
   const created = await (await post('/employees', { name: 'Test', position: 'QA', salary: 33000 })).json();
   assert.strictEqual(created.status, 'Active');

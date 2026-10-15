@@ -129,7 +129,10 @@ app.post('/api/employees', (req, res) => {
   if (typeof name !== 'string' || typeof position !== 'string') {
     return res.status(400).json({ success: false, message: 'name and position must be text' });
   }
-  const salaryNum = typeof salary === 'number' || typeof salary === 'string' ? Number(salary) : NaN;
+  const salaryNum =
+    typeof salary === 'number' ? salary
+    : typeof salary === 'string' ? Number(salary.replace(/[,\s]/g, '')) // accept "20,000"
+    : NaN;
   if (!Number.isFinite(salaryNum) || salaryNum < 0) {
     return res.status(400).json({ success: false, message: 'salary must be a non-negative number' });
   }
